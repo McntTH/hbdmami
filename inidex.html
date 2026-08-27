@@ -1403,7 +1403,8 @@
         </div>
         <p class="mem-slide-counter" id="mem-slide-counter"></p>
 
-        <p style="color:var(--ink-soft); font-size:13px; margin-bottom:4px; display:none;" id="mem-grid-hint">แตะรูปไหนก็ได้เพื่อดูแบบเต็มจอ</p>
+        <p style="color:var(--ink-soft); font-size:13px; margin-bottom:4px; display:none;" id="mem-grid-hint">
+            แตะรูปไหนก็ได้เพื่อดูแบบเต็มจอ</p>
         <div class="mem-stage" id="mem-grid"></div>
 
         <div class="btn-row">
@@ -1605,24 +1606,24 @@
         /* ---------------- background music: plays on load, loops, respects the sound toggle ---------------- */
         const bgMusic = document.getElementById('bg-music');
         bgMusic.volume = 0.5;
+        bgMusic.addEventListener('error', () => {
+            console.error('เล่นไฟล์เพลงไม่ได้ - เช็คว่ามีไฟล์ music/song.mp3 อยู่จริงและชื่อ/พาธตรงกันหรือไม่');
+        });
         function tryStartMusic() {
             if (!soundOn) return;
-            const playPromise = bgMusic.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    /* เบราว์เซอร์บล็อกการเล่นอัตโนมัติ - รอให้ผู้ใช้แตะ/กดอะไรสักครั้งก่อนแล้วเริ่มเล่นทันที */
-                    const resumeOnInteract = () => {
-                        if (soundOn) bgMusic.play().catch(() => { });
-                        document.removeEventListener('click', resumeOnInteract);
-                        document.removeEventListener('touchstart', resumeOnInteract);
-                        document.removeEventListener('keydown', resumeOnInteract);
-                    };
-                    document.addEventListener('click', resumeOnInteract, { once: true });
-                    document.addEventListener('touchstart', resumeOnInteract, { once: true });
-                    document.addEventListener('keydown', resumeOnInteract, { once: true });
-                });
-            }
+            if (!bgMusic.paused) return; /* กำลังเล่นอยู่แล้ว ไม่ต้องสั่งซ้ำ */
+            bgMusic.play().catch(() => { /* เบราว์เซอร์บล็อกไว้ - จะลองอีกทีตอนผู้ใช้แตะ/พิมพ์อะไรสักอย่าง (ดูด้านล่าง) */ });
         }
+        /* ผูกไว้ล่วงหน้าเสมอ ไม่ต้องรอให้ลองเล่นแล้ว error ก่อนถึงจะผูก กันกรณีบางเบราว์เซอร์ไม่เข้าเงื่อนไข catch
+           ครอบคลุมทั้งกดจอ พิมพ์คีย์บอร์ด และแตะช่องกรอกข้อมูล (focusin) */
+        ['pointerdown', 'touchstart', 'keydown', 'focusin'].forEach((evt) => {
+            document.addEventListener(evt, tryStartMusic, { passive: true });
+        });
+        /* กันเหนียวเรื่องวนเพลง: ถ้า attribute loop ของบางเบราว์เซอร์ (โดยเฉพาะมือถือ) ทำงานไม่เสถียร ให้สั่งเล่นซ้ำเองตอนเพลงจบ */
+        bgMusic.addEventListener('ended', () => {
+            bgMusic.currentTime = 0;
+            if (soundOn) bgMusic.play().catch(() => { });
+        });
         tryStartMusic();
 
         /* ---------------- confetti ---------------- */
@@ -1700,11 +1701,13 @@
             el.classList.add('active');
             el.scrollTop = 0;
             setProgress(id);
+            tryStartMusic();
         }
         setProgress('screen-quiz');
 
         document.getElementById('btn-check').addEventListener('click', () => {
             ensureAudio();
+            tryStartMusic();
             const errEl = document.getElementById('quiz-error');
             const nameAnswers = Array.isArray(CONFIG.name) ? CONFIG.name : [CONFIG.name];
             const nameOk = nameAnswers.map(norm).includes(norm(document.getElementById('in-name').value));
