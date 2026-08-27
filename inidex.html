@@ -872,6 +872,7 @@
             z-index: 90;
             background: rgba(91, 70, 54, .5);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             opacity: 0;
@@ -1311,6 +1312,9 @@
         <span class="dot" data-i="3"></span>
     </div>
     <button class="sound-toggle" id="btn-sound" aria-label="เปิด/ปิดเสียง" type="button">🔊</button>
+    <audio id="bg-music" loop preload="auto">
+        <source src="music.mp4" type="audio/mpeg">
+    </audio>
 
     <section class="screen active" id="screen-quiz">
         <p class="eyebrow"></p>
@@ -1391,7 +1395,7 @@
 
     <section class="screen" id="screen-memories">
         <p class="eyebrow">ย้อนเวลากันหน่อย</p>
-        <h2 class="display" style="font-size:26px; margin-bottom:18px; color:var(--pink-deep);">ความทรงจำของพวกเรา
+        <h2 class="display" style="font-size:26px; margin-bottom:18px; color:var(--pink-deep);">ความทรงจำสุดน่ารัก 💫
         </h2>
 
         <div class="mem-slide-wrap" id="mem-slide-wrap">
@@ -1404,7 +1408,7 @@
         <div class="mem-stage" id="mem-grid"></div>
 
         <div class="btn-row">
-            <button class="btn ghost next-fade" id="btn-to-wishes" type="button">คำอวยพร</button>
+            <button class="btn ghost next-fade" id="btn-to-wishes" type="button">ไปหน้าคำอวยพร</button>
         </div>
     </section>
 
@@ -1419,10 +1423,10 @@
     </div>
 
     <section class="screen" id="screen-wishes">
-        <p class="eyebrow">จากใจถึงแม่จ๋า</p>
+        <p class="eyebrow">จากใจถึงใจ</p>
         <h2 class="display" style="font-size:40px; margin-bottom:6px; color:var(--pink-deep);" id="wishes-title">
             สุขสันต์วันเกิดนะ 🎉</h2>
-        <p style="color:var(--ink-soft); font-size:14px; margin-bottom:6px;">แตะซองเพื่ออ่านข้อความน้า
+        <p style="color:var(--ink-soft); font-size:14px; margin-bottom:6px;">แตะซองแต่ละใบเพื่ออ่านคำอวยพรทีละฉบับน้า
         </p>
 
         <div class="wish-grid" id="wish-grid"></div>
@@ -1449,14 +1453,7 @@
                 "ขอให้เจอแต่เรื่องดี ๆ โชคดีตลอดไปเลยนะคะ",
                 "ขอบคุณที่เป็นพลังบวกของทุกคนเสมอมา",
                 "ขอให้แม่จ๋ามีเเต่รอยยิ้มที่สดใส",
-                "ขอให้แม่จ๋ารอเลี้ยงลูกพวกหนูก่อนนะคะ",
-                "รักหม่ามี้ตั้งเเต่เเรกเจอเลยค่ะ รักแม่นะ",
-                "ขอบคุณหม่ามี้ที่น่ารักกับพวกเราเสมอ",
-                "ขอบคุณหม่ามี้ที่ทำอาหารอร่อยๆให้พวกเรากิน",
-                "ขอบคุณหม่ามี้ที่ทำให้รู้สึกอบอุ่นขนาดนี้",
-                "ขอบคุณหม่ามี้ที่ทำให้ขุนพลเกิดมาค่ะ",
-                "รักแม่จ๋ามากกกกกกกกกกกกที่สุดเลย"
-
+                "รักหม่ามี้ตั้งเเต่เเรกเจอเลยค่ะ รักแม่นะ"
             ],
             /* ============================================================
                รูปความทรงจำจากโฟลเดอร์
@@ -1597,8 +1594,37 @@
         soundBtn.addEventListener('click', function () {
             soundOn = !soundOn;
             this.textContent = soundOn ? '🔊' : '🔇';
-            if (soundOn) { ensureAudio(); chime(880, 0.12); }
+            if (soundOn) {
+                ensureAudio();
+                chime(880, 0.12);
+                bgMusic.play().catch(() => { });
+            } else {
+                bgMusic.pause();
+            }
         });
+
+        /* ---------------- background music: plays on load, loops, respects the sound toggle ---------------- */
+        const bgMusic = document.getElementById('bg-music');
+        bgMusic.volume = 0.5;
+        function tryStartMusic() {
+            if (!soundOn) return;
+            const playPromise = bgMusic.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    /* เบราว์เซอร์บล็อกการเล่นอัตโนมัติ - รอให้ผู้ใช้แตะ/กดอะไรสักครั้งก่อนแล้วเริ่มเล่นทันที */
+                    const resumeOnInteract = () => {
+                        if (soundOn) bgMusic.play().catch(() => { });
+                        document.removeEventListener('click', resumeOnInteract);
+                        document.removeEventListener('touchstart', resumeOnInteract);
+                        document.removeEventListener('keydown', resumeOnInteract);
+                    };
+                    document.addEventListener('click', resumeOnInteract, { once: true });
+                    document.addEventListener('touchstart', resumeOnInteract, { once: true });
+                    document.addEventListener('keydown', resumeOnInteract, { once: true });
+                });
+            }
+        }
+        tryStartMusic();
 
         /* ---------------- confetti ---------------- */
         const confettiColors = ['#FF9EB5', '#FFC94A', '#FFB27A', '#9AD6FF', '#FF6F91'];
@@ -1904,7 +1930,7 @@
                     return;
                 }
                 showSlide(idx);
-            }, 480);
+            }, 2000);
 
             /* เฟส 2: พอครบแล้ว เรียงรูปทั้งหมดเป็นแถวให้เห็นภาพชัด ๆ */
             function buildGrid() {
