@@ -1313,7 +1313,7 @@
     </div>
     <button class="sound-toggle" id="btn-sound" aria-label="เปิด/ปิดเสียง" type="button">🔊</button>
     <audio id="bg-music" loop preload="auto">
-        <source src="music.mp4" type="audio/mpeg">
+        <source src="music/song.mp3" type="audio/mpeg">
     </audio>
 
     <section class="screen active" id="screen-quiz">
@@ -1403,8 +1403,7 @@
         </div>
         <p class="mem-slide-counter" id="mem-slide-counter"></p>
 
-        <p style="color:var(--ink-soft); font-size:13px; margin-bottom:4px; display:none;" id="mem-grid-hint">
-            แตะรูปไหนก็ได้เพื่อดูแบบเต็มจอ</p>
+        <p style="color:var(--ink-soft); font-size:13px; margin-bottom:4px; display:none;" id="mem-grid-hint">แตะรูปไหนก็ได้เพื่อดูแบบเต็มจอ</p>
         <div class="mem-stage" id="mem-grid"></div>
 
         <div class="btn-row">
@@ -1904,7 +1903,6 @@
 
             /* เฟส 1: ไล่โชว์รูปทีละใบจนครบทุกรูป */
             function showSlide(i) {
-                slide.innerHTML = '';
                 const el = document.createElement('div');
                 el.className = 'slide-item';
                 if (source) {
@@ -1919,6 +1917,9 @@
                 requestAnimationFrame(() => el.classList.add('show'));
                 counter.textContent = `${i + 1} / ${total}`;
                 playPop();
+                /* เก็บรูปเก่าไว้จนกว่ารูปใหม่จะเฟดเข้ามาซ้อนทับเสร็จ (ครอสเฟด) แล้วค่อยลบทิ้ง */
+                const olds = Array.from(slide.children).filter(c => c !== el);
+                setTimeout(() => olds.forEach(o => o.remove()), 600);
             }
             showSlide(0);
             let idx = 0;
@@ -1930,7 +1931,7 @@
                     return;
                 }
                 showSlide(idx);
-            }, 2000);
+            }, 3000);
 
             /* เฟส 2: พอครบแล้ว เรียงรูปทั้งหมดเป็นแถวให้เห็นภาพชัด ๆ */
             function buildGrid() {
